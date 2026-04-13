@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
@@ -37,8 +37,8 @@ const tiandituBaseLayer = new TileLayer({
 // 地图实例
 let map: Map | null = null;
 let controlsDispose: (() => void) | null = null;
-let schoolDispose: (() => void) | null = null;
-let schoolQueryDispose: (() => void) | null = null;
+// let schoolDispose: (() => void) | null = null;
+// let schoolQueryDispose: (() => void) | null = null;
 
 // 图层信息加载状态，请求完成后置为 false
 const loading = ref(true);
