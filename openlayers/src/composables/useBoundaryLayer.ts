@@ -1,11 +1,9 @@
 import { ref } from "vue";
 import Map from "ol/Map";
-import VectorLayer from "ol/layer/Vector";
+import WebGLVectorLayer from "ol/layer/WebGLVector";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
-import Style from "ol/style/Style";
-import Stroke from "ol/style/Stroke";
-import Fill from "ol/style/Fill";
+import Feature from "ol/Feature";
 
 // 阿里DataV GeoJSON 边界数据 API
 // 数据来源: https://datav.aliyun.com/areas_v3/
@@ -136,27 +134,20 @@ export function useBoundaryLayer({
   };
 
   // 存储所有边界图层
-  const boundaryLayers: VectorLayer<VectorSource>[] = [];
+  const boundaryLayers: WebGLVectorLayer[] = [];
 
   // 存储所有边界数据源
   const boundarySources: VectorSource[] = [];
 
   /**
-   * 创建样式
+   * 创建 WebGL 扁平样式（用于 GPU 加速渲染）
    */
   function createStyle() {
-    return new Style({
-      stroke: new Stroke({
-        color: currentStyle.strokeColor,
-        width: currentStyle.strokeWidth,
-      }),
-      fill: new Fill({
-        color: hexToRgba(
-          currentStyle.fillColor,
-          currentStyle.fillOpacity
-        ),
-      }),
-    });
+    return {
+      "stroke-color": currentStyle.strokeColor,
+      "stroke-width": Number(currentStyle.strokeWidth),
+      "fill-color": hexToRgba(currentStyle.fillColor, currentStyle.fillOpacity),
+    };
   }
 
   /**
@@ -206,7 +197,7 @@ export function useBoundaryLayer({
       const features = layer.getSource()?.getFeatures();
       if (!features || features.length === 0) return false;
       // 通过feature属性匹配code（如果GeoJSON有属性）
-      return features.some((f) => {
+      return features.some((f: Feature) => {
         const props = f.getProperties();
         return props?.parent?.adcode == code || props?.code == code;
       });
@@ -240,7 +231,7 @@ export function useBoundaryLayer({
     const exists = boundaryLayers.some((layer) => {
       const features = layer.getSource()?.getFeatures();
       if (!features || features.length === 0) return false;
-      return features.some((f) => {
+      return features.some((f: Feature) => {
         const props = f.getProperties();
         return props?.parent?.adcode == code || props?.code == code;
       });
@@ -256,8 +247,8 @@ export function useBoundaryLayer({
     });
     boundarySources.push(source);
 
-    // 创建图层
-    const layer = new VectorLayer({
+    // 创建图层（使用 WebGLVectorLayer 实现 GPU 加速）
+    const layer = new WebGLVectorLayer({
       source,
       style: createStyle(),
       zIndex: 5,
