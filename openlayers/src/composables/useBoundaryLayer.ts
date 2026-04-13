@@ -1,0 +1,346 @@
+import { ref } from "vue";
+import Map from "ol/Map";
+import VectorLayer from "ol/layer/Vector";
+import VectorSource from "ol/source/Vector";
+import GeoJSON from "ol/format/GeoJSON";
+import Style from "ol/style/Style";
+import Stroke from "ol/style/Stroke";
+import Fill from "ol/style/Fill";
+
+// 阿里DataV GeoJSON 边界数据 API
+// 数据来源: https://datav.aliyun.com/areas_v3/
+const DATA_V_BOUNDARY_URL = "https://geo.datav.aliyun.com/areas_v3/bound";
+
+// 省市边界缓存
+const boundaryCache = new globalThis.Map<string, GeoJSON.FeatureCollection>();
+
+export interface BoundaryLevel {
+  name: string;
+  code: string;
+  level: "country" | "province" | "city";
+}
+
+// 常用行政区划代码
+export const ADMIN_CODES = {
+  // 省份
+  beijing: "110000",
+  tianjin: "120000",
+  hebei: "130000",
+  shanxi: "140000",
+  neimenggu: "150000",
+  liaoning: "210000",
+  jilin: "220000",
+  heilongjiang: "230000",
+  shanghai: "310000",
+  jiangsu: "320000",
+  zhejiang: "330000",
+  anhui: "340000",
+  fujian: "350000",
+  jiangxi: "360000",
+  shandong: "370000",
+  henan: "410000",
+  hubei: "420000",
+  hunan: "430000",
+  guangdong: "440000",
+  guangxi: "450000",
+  hainan: "460000",
+  chongqing: "500000",
+  sichuan: "510000",
+  guizhou: "520000",
+  yunnan: "530000",
+  xizang: "540000",
+  shaanxi: "610000",
+  gansu: "620000",
+  qinghai: "630000",
+  ningxia: "640000",
+  xinjiang: "650000",
+  taiwan: "710000",
+  xianggang: "810000",
+  aomen: "820000",
+
+  // 主要城市
+  chengdu: "510100",
+  chongqing_main: "500100",
+  beijing_main: "110100",
+  shanghai_main: "310100",
+};
+
+// 中国边界code
+const CHINA_CODE = "100000";
+
+export interface UseBoundaryLayerOptions {
+  map: Map;
+}
+
+export interface BoundaryLayerResult {
+  /**
+   * 添加中国轮廓
+   */
+  addChinaBoundary: () => Promise<void>;
+
+  /**
+   * 添加省市边界
+   * @param code 行政区划代码 (如: 510000 四川省, 510100 成都市)
+   */
+  addProvinceBoundary: (code: string) => Promise<void>;
+
+  /**
+   * 添加多个省市边界
+   * @param codes 行政区划代码数组
+   */
+  addMultipleBoundaries: (codes: string[]) => Promise<void>;
+
+  /**
+   * 移除所有边界图层
+   */
+  removeAllBoundaries: () => void;
+
+  /**
+   * 移除指定行政区划代码的边界图层
+   * @param code 行政区划代码 (如: 510000 四川省, 510100 成都市)
+   */
+  removeBoundaryByCode: (code: string) => void;
+
+  /**
+   * 设置边界样式
+   */
+  setBoundaryStyle: (style: {
+    strokeColor?: string;
+    strokeWidth?: number;
+    fillColor?: string;
+    fillOpacity?: number;
+  }) => void;
+
+  /**
+   * 加载状态
+   */
+  isLoading: ReturnType<typeof ref<boolean>>;
+
+  /**
+   * 清理函数
+   */
+  dispose: () => void;
+}
+
+export function useBoundaryLayer({
+  map,
+}: UseBoundaryLayerOptions): BoundaryLayerResult {
+  const isLoading = ref(false);
+
+  // 样式配置
+  let currentStyle = {
+    strokeColor: "#3388ff",
+    strokeWidth: 1,
+    fillColor: "#3388ff",
+    fillOpacity: 0.1,
+  };
+
+  // 存储所有边界图层
+  const boundaryLayers: VectorLayer<VectorSource>[] = [];
+
+  // 存储所有边界数据源
+  const boundarySources: VectorSource[] = [];
+
+  /**
+   * 创建样式
+   */
+  function createStyle() {
+    return new Style({
+      stroke: new Stroke({
+        color: currentStyle.strokeColor,
+        width: currentStyle.strokeWidth,
+      }),
+      fill: new Fill({
+        color: hexToRgba(
+          currentStyle.fillColor,
+          currentStyle.fillOpacity
+        ),
+      }),
+    });
+  }
+
+  /**
+   * 获取边界数据
+   */
+  async function fetchBoundaryData(code: string): Promise<GeoJSON.FeatureCollection | null> {
+    // 先检查缓存
+    if (boundaryCache.has(code)) {
+      return boundaryCache.get(code)!;
+    }
+
+    try {
+      isLoading.value = true;
+
+      // 阿里DataV GeoJSON边界API
+      const url = `${DATA_V_BOUNDARY_URL}/${code}_full.json`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        console.error(`Failed to fetch boundary for code ${code}:`, response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (data.type === "FeatureCollection") {
+        boundaryCache.set(code, data);
+        return data;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Error fetching boundary for code ${code}:`, error);
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /**
+   * 移除单个边界图层
+   */
+  function removeBoundaryByCode(code: string): void {
+    // 找到对应code的图层索引
+    const index = boundaryLayers.findIndex((layer) => {
+      const features = layer.getSource()?.getFeatures();
+      if (!features || features.length === 0) return false;
+      // 通过feature属性匹配code（如果GeoJSON有属性）
+      return features.some((f) => {
+        const props = f.getProperties();
+        return props?.parent?.adcode == code || props?.code == code;
+      });
+    });
+
+    if (index > -1) {
+      const layer = boundaryLayers[index];
+      map.removeLayer(layer);
+      boundaryLayers.splice(index, 1);
+      const source = boundarySources[index];
+      if (source) {
+        source.clear();
+        const srcIdx = boundarySources.indexOf(source);
+        if (srcIdx > -1) boundarySources.splice(srcIdx, 1);
+      }
+    }
+  }
+
+  /**
+   * 添加边界图层
+   */
+  async function addBoundaryLayer(code: string, _name?: string): Promise<void> {
+    const geoData = await fetchBoundaryData(code);
+
+    if (!geoData || !geoData.features || geoData.features.length === 0) {
+      console.warn(`No boundary data found for code: ${code}`);
+      return;
+    }
+
+    // 检查是否已存在相同的code（防止重复添加）
+    const exists = boundaryLayers.some((layer) => {
+      const features = layer.getSource()?.getFeatures();
+      if (!features || features.length === 0) return false;
+      return features.some((f) => {
+        const props = f.getProperties();
+        return props?.parent?.adcode == code || props?.code == code;
+      });
+    });
+    if (exists) return;
+
+    // 创建数据源
+    const source = new VectorSource({
+      features: new GeoJSON().readFeatures(geoData, {
+        dataProjection: "EPSG:4326",
+        featureProjection: "EPSG:3857",
+      }),
+    });
+    boundarySources.push(source);
+
+    // 创建图层
+    const layer = new VectorLayer({
+      source,
+      style: createStyle(),
+      zIndex: 5,
+    });
+    boundaryLayers.push(layer);
+    map.addLayer(layer);
+  }
+
+  /**
+   * 添加中国轮廓
+   */
+  async function addChinaBoundary(): Promise<void> {
+    await addBoundaryLayer(CHINA_CODE, "中国");
+  }
+
+  /**
+   * 添加省市边界
+   */
+  async function addProvinceBoundary(code: string): Promise<void> {
+    await addBoundaryLayer(code);
+  }
+
+  /**
+   * 添加多个省市边界
+   */
+  async function addMultipleBoundaries(codes: string[]): Promise<void> {
+    await Promise.all(codes.map((code) => addBoundaryLayer(code)));
+  }
+
+  /**
+   * 移除所有边界图层
+   */
+  function removeAllBoundaries(): void {
+    boundaryLayers.forEach((layer) => {
+      map.removeLayer(layer);
+    });
+    boundaryLayers.length = 0;
+    boundarySources.length = 0;
+  }
+
+  /**
+   * 设置边界样式
+   */
+  function setBoundaryStyle(style: {
+    strokeColor?: string;
+    strokeWidth?: number;
+    fillColor?: string;
+    fillOpacity?: number;
+  }): void {
+    currentStyle = { ...currentStyle, ...style };
+
+    // 更新所有图层的样式
+    boundaryLayers.forEach((layer) => {
+      layer.setStyle(createStyle());
+    });
+  }
+
+  /**
+   * 清理函数
+   */
+  function dispose(): void {
+    removeAllBoundaries();
+    boundaryCache.clear();
+  }
+
+  return {
+    addChinaBoundary,
+    addProvinceBoundary,
+    addMultipleBoundaries,
+    removeAllBoundaries,
+    removeBoundaryByCode,
+    setBoundaryStyle,
+    isLoading,
+    dispose,
+  };
+}
+
+/**
+ * 将hex颜色转换为rgba
+ */
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
