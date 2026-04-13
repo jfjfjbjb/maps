@@ -42,6 +42,8 @@ let controlsDispose: (() => void) | null = null;
 
 // 图层信息加载状态，请求完成后置为 false
 const loading = ref(true);
+// 瓦片加载完毕后是否已初始化（防止重复初始化）
+let hasLoaded = false;
 
 // 边界图层控制按钮状态
 const showBoundaryControl = ref(false);
@@ -63,11 +65,14 @@ onMounted(() => {
     }),
   });
 
-  // OpenLayers 示例
+  // 初始化地图（瓦片加载完毕后执行一次）
   map.on("rendercomplete", function () {
+    if (hasLoaded) return;
+    hasLoaded = true;
+
     loading.value = false;
 
-    // 初始化控件
+    // 初始化控件（瓦片加载完毕后执行一次）
     const { dispose: controlsFn } = useControls({ map: map as Map });
     controlsDispose = controlsFn;
 
