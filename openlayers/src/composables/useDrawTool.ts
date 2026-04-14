@@ -3,12 +3,13 @@ import Draw, { DrawEvent } from "ol/interaction/Draw";
 import Map from "ol/Map";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
-import { Style, Stroke, Fill, Circle as CircleStyle } from "ol/style";
+import { Style, Stroke, Fill, Circle as CircleStyle, Icon } from "ol/style";
 import { getArea, getLength } from "ol/sphere";
-import { LineString, Polygon, Point } from "ol/geom";
+import { LineString, Polygon, Point, Circle as CircleGeom } from "ol/geom";
 import { transform } from "ol/proj";
+import locationIcon from "../assets/location.svg?url";
 
-export type DrawType = "Point" | "LineString" | "Polygon" | "Circle" | "None";
+export type DrawType = "Point" | "LineString" | "Polygon" | "Circle" | "Location" | "None";
 
 export interface UseDrawToolOptions {
   map: Map;
@@ -21,21 +22,50 @@ export function useDrawTool({ map }: UseDrawToolOptions) {
   // 矢量图层用于显示绘制的要素
   const vectorLayer = new VectorLayer({
     source: new VectorSource(),
-    style: new Style({
-      stroke: new Stroke({
-        color: "#4a90e2",
-        width: 2,
-      }),
-      fill: new Fill({
-        color: "rgba(74, 144, 226, 0.2)",
-      }),
-      image: new CircleStyle({
-        radius: 6,
-        fill: new Fill({
+    style: (feature) => {
+      const geomType = feature.getGeometry()?.getType();
+      const isLocation = feature.get("isLocation");
+
+      if (isLocation) {
+        // 定位图标使用 SVG
+        return new Style({
+          image: new Icon({
+            src: locationIcon,
+            scale: 0.1,
+            anchor: [0.5, 1],
+          }),
+        });
+      }
+
+      if (geomType === "Point") {
+        // 普通点样式
+        return new Style({
+          image: new CircleStyle({
+            radius: 6,
+            fill: new Fill({
+              color: "#4a90e2",
+            }),
+          }),
+        });
+      }
+
+      // 默认样式
+      return new Style({
+        stroke: new Stroke({
           color: "#4a90e2",
+          width: 2,
         }),
-      }),
-    }),
+        fill: new Fill({
+          color: "rgba(74, 144, 226, 0.2)",
+        }),
+        image: new CircleStyle({
+          radius: 6,
+          fill: new Fill({
+            color: "#4a90e2",
+          }),
+        }),
+      });
+    },
   });
 
   map.addLayer(vectorLayer);
@@ -50,10 +80,10 @@ export function useDrawTool({ map }: UseDrawToolOptions) {
 
     stopDraw();
 
-    const geometryType = type === "Circle" ? "Point" : type;
     drawInteraction = new Draw({
       source: vectorLayer.getSource()!,
-      type: geometryType as any,
+      // Location 使用 Point  geometry，但内部用 type 区分
+      type: type === "Location" ? "Point" : (type as any),
     });
 
     drawInteraction.on("drawend", (event: DrawEvent) => {
@@ -65,13 +95,19 @@ export function useDrawTool({ map }: UseDrawToolOptions) {
         coords: "",
       };
 
-      if (geometry instanceof Polygon) {
+      if (geometry instanceof CircleGeom) {
+        info.area = Math.PI * Math.pow(geometry.getRadius(), 2);
+        info.coords = formatCircleCoords(geometry);
+      } else if (geometry instanceof Polygon) {
         info.area = getArea(geometry);
         info.coords = formatPolygonCoords(geometry, info.area);
       } else if (geometry instanceof LineString) {
         info.length = getLength(geometry);
         info.coords = formatLineCoords(geometry);
       } else if (geometry instanceof Point) {
+        if (type === "Location") {
+          feature.set("isLocation", true);
+        }
         info.coords = formatPointCoords(geometry);
       }
 
@@ -115,6 +151,16 @@ export function useDrawTool({ map }: UseDrawToolOptions) {
     const coords = geometry.getCoordinates()[0];
     const areaStr = area >= 1000000 ? `${(area / 1000000).toFixed(2)} km²` : `${area.toFixed(2)} m²`;
     return `${coords.length - 1} 个顶点 | ${areaStr}`;
+  }
+
+  function formatCircleCoords(geometry: CircleGeom): string {
+    const radius = geometry.getRadius();
+    const area = Math.PI * Math.pow(radius, 2);
+    const radiusStr = radius >= 1000 ? `${(radius / 1000).toFixed(2)} km` : `${radius.toFixed(2)} m`;
+    const areaStr = area >= 1000000 ? `${(area / 1000000).toFixed(2)} km²` : `${area.toFixed(2)} m²`;
+    const [x, y] = geometry.getCenter();
+    const [lon, lat] = transform([x, y], "EPSG:3857", "EPSG:4326");
+    return `圆心: ${lon.toFixed(2)}, ${lat.toFixed(2)} | 半径: ${radiusStr} | 面积: ${areaStr}`;
   }
 
   function dispose() {

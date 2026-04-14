@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDrawTool, type DrawType } from "../composables/useDrawTool";
+import locationIcon from "../assets/location.svg?url";
 import type { Map } from "ol";
 
 const props = defineProps<{
@@ -8,9 +9,11 @@ const props = defineProps<{
 
 const { activeType, features, startDraw, clearAll } = useDrawTool({ map: props.map });
 
-const tools: { type: DrawType; icon: string }[] = [
+const tools: { type: DrawType; icon: string; isImg?: boolean }[] = [
   { type: "Point", icon: "●" },
+  { type: "Location", icon: locationIcon, isImg: true },
   { type: "LineString", icon: "╱" },
+  { type: "Circle", icon: "◎" },
   { type: "Polygon", icon: "⬡" },
 ];
 
@@ -32,7 +35,8 @@ function selectTool(type: DrawType) {
       :class="{ active: activeType === tool.type }"
       @click="selectTool(tool.type)"
     >
-      {{ tool.icon }}
+      <img v-if="tool.isImg" :src="tool.icon" class="tool-icon" />
+      <span v-else>{{ tool.icon }}</span>
     </button>
     <div class="divider"></div>
     <button class="tool-btn" :class="{ active: activeType === 'None' }" @click="startDraw('None')">
@@ -46,7 +50,7 @@ function selectTool(type: DrawType) {
   <div class="feature-list" v-if="features.length > 0">
     <div class="feature-item" v-for="(info, idx) in features" :key="idx">
       <span class="feature-index">{{ idx + 1 }}</span>
-      <span class="feature-type">{{ info.type === 'Point' ? '点' : info.type === 'LineString' ? '线' : '面' }}</span>
+      <span class="feature-type">{{ info.type === 'Point' ? '点' : info.type === 'Location' ? '定位' : info.type === 'LineString' ? '线' : info.type === 'Circle' ? '圆' : '面' }}</span>
       <span class="feature-info">{{ info.coords }}</span>
     </div>
   </div>
@@ -91,6 +95,11 @@ function selectTool(type: DrawType) {
   color: white;
 }
 
+.tool-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .divider {
   width: 1px;
   height: 20px;
@@ -113,6 +122,34 @@ function selectTool(type: DrawType) {
   font-size: 12px;
   color: #666;
   padding: 0 4px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .draw-toolbar {
+    top: 6px;
+    padding: 4px 8px;
+    gap: 2px;
+  }
+
+  .tool-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .tool-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .feature-list {
+    bottom: 40px;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    font-size: 10px;
+  }
 }
 
 .feature-list {

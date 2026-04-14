@@ -179,7 +179,7 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
   padding: 8px 14px;
-  border-radius: 20px;
+  border-radius: 8px;
   cursor: pointer;
   z-index: 1000;
   box-shadow: 0 2px 12px rgba(51, 136, 255, 0.35);
@@ -206,6 +206,32 @@ onUnmounted(() => {
   top: 70px;
   right: 20px;
   z-index: 1000;
+}
+
+/* 小屏幕适配：边界按钮移到左侧，避免遮挡居中的绘图工具栏 */
+@media (max-width: 768px) {
+  .boundary-toggle {
+    top: 80px;
+    right: auto;
+    left: 10px;
+    padding: 6px 12px;
+    /* font-size: 12px; */
+  }
+
+  .boundary-panel {
+    top: 116px;
+    right: auto;
+    left: 12px;
+  }
+
+  .boundary-control {
+    max-height: 500px;
+  }
+
+  /* 绘图工具栏在小屏幕上往上一点 */
+  .draw-toolbar {
+    top: 8px;
+  }
 }
 </style>
 

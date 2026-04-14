@@ -16,6 +16,8 @@ export function useControls({ map }: UseControlsOptions) {
     className: "mouse-position-control",
   });
 
+  const zoomSlider = new ZoomSlider();
+
   const controls: Control[] = [
     new Zoom(),
     new Rotate(),
@@ -24,12 +26,25 @@ export function useControls({ map }: UseControlsOptions) {
     // new FullScreen(),
     mousePositionControl,
     // new OverviewMap(),
-    new ZoomSlider(),
+    zoomSlider,
   ];
 
   controls.forEach((control) => map.addControl(control));
 
+  // 小屏幕隐藏 ZoomSlider
+  const mediaQuery = window.matchMedia("(max-width: 768px)");
+  function handleMediaChange(e: MediaQueryListEvent | MediaQueryList) {
+    if (e.matches) {
+      map.removeControl(zoomSlider);
+    } else {
+      map.addControl(zoomSlider);
+    }
+  }
+  handleMediaChange(mediaQuery);
+  mediaQuery.addEventListener("change", handleMediaChange);
+
   function dispose() {
+    mediaQuery.removeEventListener("change", handleMediaChange);
     controls.forEach((control) => map.removeControl(control));
   }
 
