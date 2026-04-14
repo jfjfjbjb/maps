@@ -1,5 +1,6 @@
-import { ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import Map from "ol/Map";
+import { unByKey } from "ol/Observable";
 import WebGLVectorLayer from "ol/layer/WebGLVector";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
@@ -139,21 +140,87 @@ export function useBoundaryLayer({
   // 存储所有边界数据源
   const boundarySources: VectorSource[] = [];
 
+  // 当前 hover 的 feature
+  let hoveredFeature: Feature | null = null;
+
+  // pointermove 事件 key，用于清理
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let pointerMoveKey: any = null;
+
   /**
    * 创建 WebGL 扁平样式（用于 GPU 加速渲染）
    */
   function createStyle() {
-    return {
-      "stroke-color": currentStyle.strokeColor,
-      "stroke-width": Number(currentStyle.strokeWidth),
-      "fill-color": hexToRgba(currentStyle.fillColor, currentStyle.fillOpacity),
-    };
+    const style = currentStyle;
+    return [
+      {
+        filter: ["==", ["get", "hovered"], 1],
+        style: {
+          "stroke-color": style.strokeColor,
+          "stroke-width": Number(style.strokeWidth),
+          "fill-color": hexToRgba(style.fillColor, style.fillOpacity + 0.2),
+        },
+      },
+      {
+        else: true,
+        style: {
+          "stroke-color": style.strokeColor,
+          "stroke-width": Number(style.strokeWidth),
+          "fill-color": hexToRgba(style.fillColor, style.fillOpacity),
+        },
+      },
+    ];
+  }
+
+  /**
+   * 初始化 hover 事件监听
+   */
+  function initHoverEvents() {
+    pointerMoveKey = map.on("pointermove", (evt) => {
+      if (evt.dragging) return;
+
+      const features = map.getFeaturesAtPixel(evt.pixel, {
+        layerFilter: (l) => l.get("name") === "china",
+      });
+
+      const newHoveredFeature =
+        features && features.length > 0 ? (features[0] as Feature) : null;
+
+      if (!newHoveredFeature) {
+        hoveredFeature && hoveredFeature.setProperties({ hovered: 0 });
+        hoveredFeature = null;
+        return;
+      }
+
+      if (newHoveredFeature !== hoveredFeature) {
+        hoveredFeature && hoveredFeature.setProperties({ hovered: 0 });
+        newHoveredFeature.setProperties({ hovered: 1 });
+        hoveredFeature = newHoveredFeature;
+        // // 触发图层重绘以应用新的样式
+        // layer.changed();
+        // // 更新鼠标样式
+        // map.getTargetElement().style.cursor = hoveredFeature ? "pointer" : "";
+      }
+    });
+  }
+
+  /**
+   * 移除 hover 事件监听
+   */
+  function removeHoverEvents() {
+    if (pointerMoveKey) {
+      unByKey(pointerMoveKey);
+      pointerMoveKey = null;
+    }
+    hoveredFeature = null;
   }
 
   /**
    * 获取边界数据
    */
-  async function fetchBoundaryData(code: string): Promise<GeoJSON.FeatureCollection | null> {
+  async function fetchBoundaryData(
+    code: string,
+  ): Promise<GeoJSON.FeatureCollection | null> {
     // 先检查缓存
     if (boundaryCache.has(code)) {
       return boundaryCache.get(code)!;
@@ -168,7 +235,10 @@ export function useBoundaryLayer({
       const response = await fetch(url);
 
       if (!response.ok) {
-        console.error(`Failed to fetch boundary for code ${code}:`, response.statusText);
+        console.error(
+          `Failed to fetch boundary for code ${code}:`,
+          response.statusText,
+        );
         return null;
       }
 
@@ -253,6 +323,7 @@ export function useBoundaryLayer({
       style: createStyle(),
       zIndex: 5,
     });
+    layer.set("name", _name || code);
     boundaryLayers.push(layer);
     map.addLayer(layer);
   }
@@ -261,7 +332,7 @@ export function useBoundaryLayer({
    * 添加中国轮廓
    */
   async function addChinaBoundary(): Promise<void> {
-    await addBoundaryLayer(CHINA_CODE, "中国");
+    await addBoundaryLayer(CHINA_CODE, "china");
   }
 
   /**
@@ -313,6 +384,19 @@ export function useBoundaryLayer({
     removeAllBoundaries();
     boundaryCache.clear();
   }
+
+  /**
+   * 初始化 hover 事件监听
+   */
+  onMounted(() => {
+    initHoverEvents();
+  });
+  /**
+   * 移除 hover 事件监听
+   */
+  onUnmounted(() => {
+    removeHoverEvents();
+  });
 
   return {
     addChinaBoundary,

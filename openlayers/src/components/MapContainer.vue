@@ -239,4 +239,19 @@ onUnmounted(() => {
   color: #333;
   text-align: center;
 }
+
+/* 鼠标位置控件 - 右下角经纬度显示 */
+.mouse-position-control {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #fff;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+}
 </style>

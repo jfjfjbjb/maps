@@ -15,7 +15,10 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'count: {d[\\\\\"count\\\\\"]}'\\); [print\\(f'{p[\\\\\"name\\\\\"]} - {p[\\\\\"type\\\\\"]} - {p.get\\(\\\\\"location\\\\\",\\\\\"\\\\\"\\)}'\\) for p in d.get\\('pois',[]\\)[:5]]\")",
       "Bash(curl -s \"https://restapi.amap.com/v3/place/text?key=c5dbc6be97b745d66860f88834cd58c4&keywords=&city=%E9%87%8D%E5%BA%86%E5%B8%82&citylimit=true&offset=20&page=1&types=141207&output=json\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'count: {d[\\\\\"count\\\\\"]}'\\); [print\\(f'{p[\\\\\"name\\\\\"]} - {p[\\\\\"type\\\\\"]}'\\) for p in d.get\\('pois',[]\\)[:5]]\")",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(curl -s http://localhost:5173)",
+      "mcp__chrome-devtools__click",
+      "Bash(grep -r \"unByKey\" node_modules/ol/*.d.ts)"
     ]
   }
 }
