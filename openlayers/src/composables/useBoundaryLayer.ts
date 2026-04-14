@@ -5,6 +5,7 @@ import WebGLVectorLayer from "ol/layer/WebGLVector";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
 import Feature from "ol/Feature";
+import { getCenter } from "ol/extent";
 
 // 阿里DataV GeoJSON 边界数据 API
 // 数据来源: https://datav.aliyun.com/areas_v3/
@@ -287,6 +288,51 @@ export function useBoundaryLayer({
   }
 
   /**
+   * 动画定位到边界区域
+   */
+  function animateToExtent(source: VectorSource): void {
+    const features = source.getFeatures();
+    if (features.length === 0) return;
+
+    // 计算所有要素的边界范围
+    const extent = features[0].getGeometry()?.getExtent() || [];
+    for (let i = 1; i < features.length; i++) {
+      const geom = features[i].getGeometry();
+      if (geom) {
+        const fe = geom.getExtent();
+        extent[0] = Math.min(extent[0], fe[0]);
+        extent[1] = Math.min(extent[1], fe[1]);
+        extent[2] = Math.max(extent[2], fe[2]);
+        extent[3] = Math.max(extent[3], fe[3]);
+      }
+    }
+
+    if (extent.length === 4 && extent.every((v) => isFinite(v))) {
+      const view = map.getView();
+      const mapSize = map.getSize();
+      if (!mapSize) return;
+
+      // 计算水平和垂直方向各自需要多少单位来填满视口
+      const resX = (extent[2] - extent[0]) / mapSize[0];
+      const resY = (extent[3] - extent[1]) / mapSize[1];
+      // 取较大的 resolution，确保整个边界在视口内可见
+      const resolution = Math.max(resX, resY) * 1.05;
+
+      // 根据 resolution 计算 zoom，并限制在合理范围
+      let zoom = view.getZoomForResolution(resolution) ?? 10;
+      zoom = Math.max(3, Math.min(zoom, 18));
+
+      const center = getCenter(extent);
+
+      map.getView().animate({
+        center,
+        zoom,
+        duration: 800,
+      });
+    }
+  }
+
+  /**
    * 添加边界图层
    */
   async function addBoundaryLayer(code: string, _name?: string): Promise<void> {
@@ -326,6 +372,9 @@ export function useBoundaryLayer({
     layer.set("name", _name || code);
     boundaryLayers.push(layer);
     map.addLayer(layer);
+
+    // 动画定位到边界区域
+    animateToExtent(source);
   }
 
   /**

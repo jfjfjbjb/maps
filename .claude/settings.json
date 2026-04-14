@@ -18,7 +18,8 @@
       "Bash(npx tsc:*)",
       "Bash(curl -s http://localhost:5173)",
       "mcp__chrome-devtools__click",
-      "Bash(grep -r \"unByKey\" node_modules/ol/*.d.ts)"
+      "Bash(grep -r \"unByKey\" node_modules/ol/*.d.ts)",
+      "Bash(npx vue-tsc:*)"
     ]
   }
 }

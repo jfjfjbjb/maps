@@ -8,6 +8,7 @@ import { XYZ } from "ol/source";
 import "ol/ol.css";
 import { useControls } from "../composables/useControls";
 import BoundaryControl from "../components/BoundaryControl.vue";
+import DrawToolbar from "../components/DrawToolbar.vue";
 // import { useSchoolAnnotation } from "../composables/useSchoolAnnotation";
 // import { useMapSchoolQuery } from "../composables/useMapSchoolQuery";
 
@@ -113,6 +114,8 @@ onUnmounted(() => {
       <div class="map-loading-spinner"></div>
       <span>图层加载中...</span>
     </div>
+    <!-- 绘图工具栏 -->
+    <DrawToolbar v-if="map && !loading" :map="map" />
     <!-- 边界图层控制按钮 -->
     <template v-if="!loading">
       <div class="boundary-toggle" @click="toggleBoundaryControl">
