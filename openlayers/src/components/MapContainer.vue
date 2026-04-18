@@ -7,6 +7,7 @@ import { fromLonLat } from "ol/proj";
 import { XYZ } from "ol/source";
 import "ol/ol.css";
 import { useControls } from "../composables/useControls";
+import { useRouteSimulation } from "../composables/useRouteSimulation";
 import BoundaryControl from "../components/BoundaryControl.vue";
 import DrawToolbar from "../components/DrawToolbar.vue";
 // import { useSchoolAnnotation } from "../composables/useSchoolAnnotation";
@@ -38,6 +39,9 @@ const tiandituBaseLayer = new TileLayer({
 // 地图实例
 let map: Map | null = null;
 let controlsDispose: (() => void) | null = null;
+let routeDispose: (() => void) | null = null;
+let drawRouteFn: ((from: "flowerGarden" | "grandTheater") => void) | null = null;
+let clearRouteFn: (() => void) | null = null;
 // let schoolDispose: (() => void) | null = null;
 // let schoolQueryDispose: (() => void) | null = null;
 
@@ -48,9 +52,21 @@ let hasLoaded = false;
 
 // 边界图层控制按钮状态
 const showBoundaryControl = ref(false);
+// 路径模拟状态
+const routeVisible = ref(false);
 
 function toggleBoundaryControl() {
   showBoundaryControl.value = !showBoundaryControl.value;
+}
+
+function handleRouteToggle() {
+  if (routeVisible.value) {
+    clearRouteFn?.();
+    routeVisible.value = false;
+  } else {
+    drawRouteFn?.("flowerGarden");
+    routeVisible.value = true;
+  }
 }
 
 onMounted(() => {
@@ -77,6 +93,12 @@ onMounted(() => {
     const { dispose: controlsFn } = useControls({ map: map as Map });
     controlsDispose = controlsFn;
 
+    // 初始化路径模拟
+    const { dispose: routeFn, drawRoute, clearRoute } = useRouteSimulation({ map: map as Map });
+    routeDispose = routeFn;
+    drawRouteFn = drawRoute;
+    clearRouteFn = clearRoute;
+
     // 初始化学校标注
     // const { addSchool, clearAll, dispose } = useSchoolAnnotation({ map: map });
     // schoolDispose = dispose;
@@ -98,6 +120,7 @@ onMounted(() => {
 onUnmounted(() => {
   // schoolQueryDispose?.();
   // schoolDispose?.();
+  routeDispose?.();
   controlsDispose?.();
   if (map) {
     map.dispose();
@@ -116,10 +139,15 @@ onUnmounted(() => {
     </div>
     <!-- 绘图工具栏 -->
     <DrawToolbar v-if="map && !loading" :map="map" />
-    <!-- 边界图层控制按钮 -->
+    <!-- 工具按钮组 -->
     <template v-if="!loading">
-      <div class="boundary-toggle" @click="toggleBoundaryControl">
-        <span>{{ showBoundaryControl ? "关闭" : "边界图层" }}</span>
+      <div class="toolbar-group">
+        <div class="toolbar-btn" @click="toggleBoundaryControl">
+          <span>{{ showBoundaryControl ? "关闭" : "边界图层" }}</span>
+        </div>
+        <div class="toolbar-btn" @click="handleRouteToggle">
+          <span>{{ routeVisible ? "清除路径" : "模拟路径" }}</span>
+        </div>
       </div>
       <div v-show="showBoundaryControl" class="boundary-panel">
         <BoundaryControl :map="map" v-if="map" />
@@ -171,55 +199,66 @@ onUnmounted(() => {
   }
 }
 
-/* 边界图层控制按钮 */
-.boundary-toggle {
+/* 工具按钮组 - 统一位置控制 */
+.toolbar-group {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  color: white;
-  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+}
+
+/* 通用工具按钮样式 */
+.toolbar-btn {
+  background: #fff;
+  color: #333;
+  padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
-  z-index: 1000;
-  box-shadow: 0 2px 12px rgba(51, 136, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   user-select: none;
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.5px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.25s ease;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
 }
 
-.boundary-toggle:hover {
-  background: linear-gradient(135deg, #5a9fe8 0%, #3d87c8 100%);
+.toolbar-btn:hover {
+  background: #f8f9fa;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(51, 136, 255, 0.45);
 }
 
-.boundary-toggle:active {
+.toolbar-btn:active {
   transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .boundary-panel {
   position: fixed;
-  top: 70px;
+  top: 68px;
   right: 20px;
   z-index: 1000;
 }
 
-/* 小屏幕适配：边界按钮移到左侧，避免遮挡居中的绘图工具栏 */
+/* 小屏幕适配：按钮组移到左上角 */
 @media (max-width: 768px) {
-  .boundary-toggle {
+  .toolbar-group {
     top: 80px;
     right: auto;
     left: 10px;
+  }
+
+  .toolbar-btn {
     padding: 6px 12px;
-    /* font-size: 12px; */
+    font-size: 12px;
   }
 
   .boundary-panel {
-    top: 116px;
+    top: 140px;
     right: auto;
     left: 12px;
   }
