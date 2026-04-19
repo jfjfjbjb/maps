@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:lbs.tianditu.gov.cn)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://overpass-api.de/api/interpreter?data=[out:json];node[\\\\\"name\\\\\"~\\\\\"小学\\\\\"]\\(29.5,106.4,29.7,106.7\\);out%20body;\")",
+      "Bash(curl -s \"https://restapi.amap.com/v3/place/text?keywords=小学&city=重庆&key=test&offset=5\")",
+      "Bash(curl -s \"https://nominatim.openstreetmap.org/search?format=json&q=school+chongqing&limit=5\")",
+      "Bash(curl -s \"https://restapi.amap.com/v3/place/text?key=c5dbc6be97b745d66860f88834cd58c4&keywords=小学&city=%E9%87%8D%E5%BA%86%E5%B8%82&citylimit=true&offset=20&page=1&types=141207&output=json\")",
+      "Bash(curl -s \"https://restapi.amap.com/v3/place/text?key=c5dbc6be97b745d66860f88834cd58c4&keywords=小学&city=%E9%87%8D%E5%BA%86%E5%B8%82&citylimit=true&offset=20&page=1&output=json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'count: {d[\\\\\"count\\\\\"]}'\\); [print\\(f'{p[\\\\\"name\\\\\"]} - {p[\\\\\"location\\\\\"]}'\\) for p in d['pois'][:10]]\")",
+      "Bash(curl -s \"https://restapi.amap.com/v3/place/text?key=c5dbc6be97b745d66860f88834cd58c4&keywords=&city=%E9%87%8D%E5%BA%86%E5%B8%82&citylimit=true&offset=20&page=1&types=141204&output=json\")",
+      "Bash(curl -s \"https://restapi.amap.com/v3/place/text?key=c5dbc6be97b745d66860f88834cd58c4&keywords=小学&city=%E9%87%8D%E5%BA%86%E5%B8%82&citylimit=true&offset=20&page=1&types=141203&output=json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'count: {d[\\\\\"count\\\\\"]}'\\); [print\\(f'{p[\\\\\"name\\\\\"]} - {p[\\\\\"type\\\\\"]} - {p.get\\(\\\\\"location\\\\\",\\\\\"\\\\\"\\)}'\\) for p in d.get\\('pois',[]\\)[:5]]\")",
+      "Bash(curl -s \"https://restapi.amap.com/v3/place/text?key=c5dbc6be97b745d66860f88834cd58c4&keywords=&city=%E9%87%8D%E5%BA%86%E5%B8%82&citylimit=true&offset=20&page=1&types=141207&output=json\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'count: {d[\\\\\"count\\\\\"]}'\\); [print\\(f'{p[\\\\\"name\\\\\"]} - {p[\\\\\"type\\\\\"]}'\\) for p in d.get\\('pois',[]\\)[:5]]\")",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s http://localhost:5173)",
+      "mcp__chrome-devtools__click",
+      "Bash(grep -r \"unByKey\" node_modules/ol/*.d.ts)",
+      "Bash(npx vue-tsc:*)"
+    ]
+  }
+}
