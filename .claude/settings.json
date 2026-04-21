@@ -4,7 +4,11 @@
       "Bash(npm create *)",
       "Bash(npm install *)",
       "Bash(npm list *)",
-      "WebFetch(domain:cesium.com)"
+      "WebFetch(domain:cesium.com)",
+      "Bash(curl -L -o \"d:/workspace/map-demo/cesium/public/models/GroundVehicle.glb\" \"https://raw.githubusercontent.com/CesiumGS/cesium/main/Apps/SampleData/models/GroundVehicle/GroundVehicle.glb\")"
+    ],
+    "additionalDirectories": [
+      "d:\\workspace\\map-demo\\cesium\\public"
     ]
   }
 }

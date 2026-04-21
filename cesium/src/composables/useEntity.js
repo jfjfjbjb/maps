@@ -137,10 +137,11 @@ const useEntity = ({ viewer }) => {
     name: '模型',
     position: Cesium.Cartesian3.fromDegrees(106.4, 29.65, 500),
     model: {
-      uri: 'https://raw.githubusercontent.com/CesiumGS/cesium/main/Apps/SampleData/models/GroundVehicle/GroundVehicle.glb',
+      uri: '/models/GroundVehicle.glb',
       scale: 200,
-      minimumPixelSize: 64,
-      maximumScale: 20000,
+      minimumPixelSize: 32,
+      maximumScale: 50000,
+      allowPicking: false,
     }
   });
 
