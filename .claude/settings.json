@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm create *)",
       "Bash(npm install *)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "WebFetch(domain:cesium.com)"
     ]
   }
 }

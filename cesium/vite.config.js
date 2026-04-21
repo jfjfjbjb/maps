@@ -3,5 +3,6 @@ import vue from '@vitejs/plugin-vue'
 import cesium from 'vite-plugin-cesium'
 
 export default defineConfig({
+  base: './',
   plugins: [vue(), cesium()],
 })
