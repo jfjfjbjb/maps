@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import modelUrl from '/models/GroundVehicle.glb?url';
 
 // 实体
 const useEntity = ({ viewer }) => {
@@ -137,7 +138,7 @@ const useEntity = ({ viewer }) => {
     name: '模型',
     position: Cesium.Cartesian3.fromDegrees(106.4, 29.65, 500),
     model: {
-      uri: '/models/GroundVehicle.glb',
+      uri: modelUrl,
       scale: 200,
       minimumPixelSize: 32,
       maximumScale: 50000,
