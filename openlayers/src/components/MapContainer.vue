@@ -258,7 +258,7 @@ onUnmounted(() => {
   }
 
   .boundary-panel {
-    top: 140px;
+    top: 116px;
     right: auto;
     left: 12px;
   }

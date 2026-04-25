@@ -5,7 +5,10 @@
       "Bash(npm install *)",
       "Bash(npm list *)",
       "WebFetch(domain:cesium.com)",
-      "Bash(curl -L -o \"d:/workspace/map-demo/cesium/public/models/GroundVehicle.glb\" \"https://raw.githubusercontent.com/CesiumGS/cesium/main/Apps/SampleData/models/GroundVehicle/GroundVehicle.glb\")"
+      "Bash(curl -L -o \"d:/workspace/map-demo/cesium/public/models/GroundVehicle.glb\" \"https://raw.githubusercontent.com/CesiumGS/cesium/main/Apps/SampleData/models/GroundVehicle/GroundVehicle.glb\")",
+      "WebSearch",
+      "Bash(npm run *)",
+      "Bash(sed -n '260,264p' \"d:\\\\\\\\workspace\\\\\\\\map-demo\\\\\\\\openlayers\\\\\\\\src\\\\\\\\components\\\\\\\\MapContainer.vue\")"
     ],
     "additionalDirectories": [
       "d:\\workspace\\map-demo\\cesium\\public"
