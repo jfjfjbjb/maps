@@ -1,0 +1,39 @@
+name: Auto Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'openlayers/**'
+      - 'cesium/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            openlayers:
+              - 'openlayers/**'
+            cesium:
+              - 'cesium/**'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build openlayers
+        if: steps.changes.outputs.openlayers == 'true'
+        run: cd openlayers && npm ci && npm run build
+
+      - name: Build cesium
+        if: steps.changes.outputs.cesium == 'true'
+        run: cd cesium && npm ci && npm run build
