@@ -28,7 +28,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22'
 
       - name: Build openlayers
         if: steps.changes.outputs.openlayers == 'true'
@@ -37,3 +37,24 @@ jobs:
       - name: Build cesium
         if: steps.changes.outputs.cesium == 'true'
         run: cd cesium && npm ci && npm run build
+
+      - name: Prepare deploy directory
+        if: steps.changes.outputs.openlayers == 'true' || steps.changes.outputs.cesium == 'true'
+        run: |
+          mkdir _deploy
+          cp index.html _deploy/
+          cp -r static _deploy/
+          if [ "${{ steps.changes.outputs.openlayers }}" = "true" ]; then
+            cp -r openlayers/dist _deploy/openlayers/
+          fi
+          if [ "${{ steps.changes.outputs.cesium }}" = "true" ]; then
+            cp -r cesium/dist _deploy/cesium/
+          fi
+
+      - name: Deploy to GitHub Pages
+        if: steps.changes.outputs.openlayers == 'true' || steps.changes.outputs.cesium == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_deploy
+          keep_files: true
