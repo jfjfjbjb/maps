@@ -7,54 +7,44 @@ on:
     paths:
       - 'openlayers/**'
       - 'cesium/**'
+      - 'index.html'
+      - 'static/**'
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v3
-        id: changes
-        with:
-          filters: |
-            openlayers:
-              - 'openlayers/**'
-            cesium:
-              - 'cesium/**'
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Build openlayers
-        if: steps.changes.outputs.openlayers == 'true'
         run: cd openlayers && npm ci && npm run build
 
       - name: Build cesium
-        if: steps.changes.outputs.cesium == 'true'
         run: cd cesium && npm ci && npm run build
 
-      - name: Prepare deploy directory
-        if: steps.changes.outputs.openlayers == 'true' || steps.changes.outputs.cesium == 'true'
+      - name: Prepare site
         run: |
-          mkdir _deploy
-          cp index.html _deploy/
-          cp -r static _deploy/
-          if [ "${{ steps.changes.outputs.openlayers }}" = "true" ]; then
-            cp -r openlayers/dist _deploy/openlayers/
-          fi
-          if [ "${{ steps.changes.outputs.cesium }}" = "true" ]; then
-            cp -r cesium/dist _deploy/cesium/
-          fi
+          mkdir _site
+          cp index.html _site/
+          [ -d static ] && cp -r static _site/ || true
+          cp -r openlayers/dist _site/openlayers/
+          cp -r cesium/dist _site/cesium/
 
-      - name: Deploy to GitHub Pages
-        if: steps.changes.outputs.openlayers == 'true' || steps.changes.outputs.cesium == 'true'
-        uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/upload-pages-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./_deploy
-          keep_files: true
+          path: _site
+
+      - uses: actions/deploy-pages@v5
+        id: deployment

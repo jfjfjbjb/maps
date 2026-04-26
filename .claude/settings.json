@@ -10,7 +10,8 @@
       "Bash(npm run *)",
       "Bash(sed -n '260,264p' \"d:\\\\\\\\workspace\\\\\\\\map-demo\\\\\\\\openlayers\\\\\\\\src\\\\\\\\components\\\\\\\\MapContainer.vue\")",
       "Bash(git --no-pager log --oneline -5)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git ls-tree *)"
     ],
     "additionalDirectories": [
       "d:\\workspace\\map-demo\\cesium\\public",
