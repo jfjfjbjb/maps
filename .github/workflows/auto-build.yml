@@ -57,8 +57,9 @@ jobs:
             cp -r cesium/dist _site/cesium/
           fi
 
-      - uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/upload-pages-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _site
-          keep_files: true
+          path: _site
+
+      - uses: actions/deploy-pages@v5
+        id: deployment
