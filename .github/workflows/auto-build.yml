@@ -51,10 +51,7 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p _site
-          if [ "${{ steps.filter.outputs.root }}" = "true" ]; then
-            cp index.html _site/
-            [ -d static ] && cp -r static _site/ || true
-          fi
+          cp index.html -r static _site/
           if [ "${{ steps.filter.outputs.openlayers }}" = "true" ]; then
             cp -r openlayers/dist _site/openlayers/
           fi
