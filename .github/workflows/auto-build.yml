@@ -40,6 +40,14 @@ jobs:
               - 'index.html'
               - 'static/**'
 
+      - name: Cache site
+        uses: actions/cache@v4
+        with:
+          path: _site
+          key: site-${{ runner.os }}-${{ hashFiles('openlayers/**', 'cesium/**', 'index.html', 'static/**') }}
+          restore-keys: |
+            site-${{ runner.os }}-
+
       - name: Build openlayers
         if: steps.filter.outputs.openlayers == 'true'
         run: cd openlayers && npm ci && npm run build
