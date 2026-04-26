@@ -11,16 +11,11 @@ on:
       - 'static/**'
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,23 +23,42 @@ jobs:
         with:
           node-version: '22'
 
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            openlayers:
+              - 'openlayers/**'
+            cesium:
+              - 'cesium/**'
+            root:
+              - 'index.html'
+              - 'static/**'
+
       - name: Build openlayers
+        if: steps.filter.outputs.openlayers == 'true'
         run: cd openlayers && npm ci && npm run build
 
       - name: Build cesium
+        if: steps.filter.outputs.cesium == 'true'
         run: cd cesium && npm ci && npm run build
 
       - name: Prepare site
         run: |
-          mkdir _site
-          cp index.html _site/
-          [ -d static ] && cp -r static _site/ || true
-          cp -r openlayers/dist _site/openlayers/
-          cp -r cesium/dist _site/cesium/
+          mkdir -p _site
+          if [ "${{ steps.filter.outputs.root }}" = "true" ]; then
+            cp index.html _site/
+            [ -d static ] && cp -r static _site/ || true
+          fi
+          if [ "${{ steps.filter.outputs.openlayers }}" = "true" ]; then
+            cp -r openlayers/dist _site/openlayers/
+          fi
+          if [ "${{ steps.filter.outputs.cesium }}" = "true" ]; then
+            cp -r cesium/dist _site/cesium/
+          fi
 
-      - uses: actions/upload-pages-artifact@v4
+      - uses: peaceiris/actions-gh-pages@v4
         with:
-          path: _site
-
-      - uses: actions/deploy-pages@v5
-        id: deployment
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _site
+          keep_files: true
