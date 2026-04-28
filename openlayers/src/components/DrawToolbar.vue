@@ -125,11 +125,13 @@ function selectTool(type: DrawType) {
   flex-shrink: 0;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .draw-toolbar {
     top: 6px;
     padding: 4px 8px;
     gap: 2px;
+    left: 24px;
+    transform: translateX(0)
   }
 
   .tool-btn {

@@ -17,9 +17,10 @@ export function useControls({ map }: UseControlsOptions) {
   });
 
   const zoomSlider = new ZoomSlider();
+  const zoom = new Zoom();
 
   const controls: Control[] = [
-    new Zoom(),
+    zoom,
     new Rotate(),
     // new Attribution(),
     new ScaleLine(),
@@ -35,8 +36,10 @@ export function useControls({ map }: UseControlsOptions) {
   const mediaQuery = window.matchMedia("(max-width: 768px)");
   function handleMediaChange(e: MediaQueryListEvent | MediaQueryList) {
     if (e.matches) {
+      map.removeControl(zoom);
       map.removeControl(zoomSlider);
     } else {
+      map.addControl(zoom);
       map.addControl(zoomSlider);
     }
   }

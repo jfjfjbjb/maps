@@ -5,6 +5,7 @@ import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
 import { fromLonLat } from "ol/proj";
 import { XYZ } from "ol/source";
+import { defaults as defaultControls } from "ol/control/defaults";
 import "ol/ol.css";
 import { useControls } from "../composables/useControls";
 import { useRouteSimulation } from "../composables/useRouteSimulation";
@@ -72,6 +73,7 @@ function handleRouteToggle() {
 onMounted(() => {
   map = new Map({
     target: "map-container",
+    controls: defaultControls({ zoom: false, rotate: false }),
     // layers: [tiandituBaseLayer, tiandituLabelLayer],
     layers: [tiandituBaseLayer],
     view: new View({
@@ -247,9 +249,9 @@ onUnmounted(() => {
 /* 小屏幕适配：按钮组移到左上角 */
 @media (max-width: 768px) {
   .toolbar-group {
-    top: 80px;
+    /* top: 80px;
     right: auto;
-    left: 10px;
+    left: 10px; */
   }
 
   .toolbar-btn {
@@ -258,9 +260,9 @@ onUnmounted(() => {
   }
 
   .boundary-panel {
-    top: 116px;
-    right: auto;
-    left: 12px;
+    top: 60px;
+    /* right: auto;
+    left: 12px; */
   }
 
   .boundary-control {
