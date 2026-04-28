@@ -433,11 +433,11 @@ p {
   }
 
   .card {
-    padding: var(--space-lg) !important;
+    padding: var(--space-lg);
   }
 
   .btn {
-    padding: var(--space-sm) var(--space-lg) !important;
-    font-size: 1rem !important;
+    padding: var(--space-sm) var(--space-lg);
+    font-size: 1rem;
   }
 }
