@@ -13,7 +13,12 @@
       "Bash(git rm *)",
       "Bash(git ls-tree *)",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__query-docs"
+      "mcp__context7__query-docs",
+      "Bash(xxd d:/workspace/map-demo/openlayers/src/style.css)",
+      "Bash(git checkout *)",
+      "Bash(sed -i 's/    padding: var\\(--space-lg\\);/    padding: var\\(--space-lg\\) !important;/' openlayers/src/style.css)",
+      "Bash(sed -i 's/    padding: var\\(--space-sm\\) var\\(--space-lg\\);/    padding: var\\(--space-sm\\) var\\(--space-lg\\) !important;/' openlayers/src/style.css)",
+      "Bash(sed -i 's/    font-size: 1rem;/    font-size: 1rem !important;/' openlayers/src/style.css)"
     ],
     "additionalDirectories": [
       "d:\\workspace\\map-demo\\cesium\\public",

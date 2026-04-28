@@ -127,30 +127,30 @@ function selectTool(type: DrawType) {
 
 @media (max-width: 768px) {
   .draw-toolbar {
-    top: 6px;
-    padding: 4px 8px;
-    gap: 2px;
-    left: 24px;
-    transform: translateX(0)
+    top: 6px !important;
+    padding: 4px 8px !important;
+    gap: 2px !important;
+    left: 24px !important;
+    transform: translateX(0) !important;
   }
 
   .tool-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
   }
 
   .tool-icon {
-    width: 16px;
-    height: 16px;
+    width: 16px !important;
+    height: 16px !important;
   }
 
   .feature-list {
-    bottom: 40px;
-    left: 8px;
-    right: 8px;
-    max-width: none;
-    font-size: 10px;
+    bottom: 40px !important;
+    left: 8px !important;
+    right: 8px !important;
+    max-width: none !important;
+    font-size: 10px !important;
   }
 }
 

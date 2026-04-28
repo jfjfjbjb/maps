@@ -249,16 +249,16 @@ onUnmounted(() => {
 /* 小屏幕适配：按钮组移到左上角 */
 @media (max-width: 768px) {
   .toolbar-group {
-    top: 48px;
+    top: 48px !important;
   }
 
   .toolbar-btn {
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
   }
 
   .boundary-panel {
-    top: 86px;
+    top: 86px !important;
   }
 
   .boundary-control {
