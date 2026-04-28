@@ -13,7 +13,12 @@
       "Bash(git rm *)",
       "Bash(git ls-tree *)",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__query-docs"
+      "mcp__context7__query-docs",
+      "Bash(node -e \"const cssnano = require\\('cssnano'\\); console.log\\(Object.keys\\(cssnano\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(npm info *)",
+      "Bash(ls node_modules/cssnano/src/presets/)",
+      "Bash(ls node_modules/cssnano/dist/)"
     ],
     "additionalDirectories": [
       "d:\\workspace\\map-demo\\cesium\\public",

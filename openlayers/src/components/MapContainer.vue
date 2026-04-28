@@ -320,9 +320,4 @@ onUnmounted(() => {
   pointer-events: none;
   letter-spacing: 0.5px;
 }
-
-/* 小屏幕适配：按钮组移到左上角 */
-.toolbar-group {
-  top: 48px !important;
-}
 </style>
