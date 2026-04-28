@@ -52,8 +52,7 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          cp index.html static _site/
-          # 始终复制所有存在的 dist 目录
+          cp index.html -r static _site/
           [ -d "openlayers/dist" ] && cp -r openlayers/dist _site/openlayers/
           [ -d "cesium/dist" ] && cp -r cesium/dist _site/cesium/
 
