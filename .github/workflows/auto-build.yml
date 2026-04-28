@@ -40,14 +40,6 @@ jobs:
               - 'index.html'
               - 'static/**'
 
-      - name: Cache site
-        uses: actions/cache@v4
-        with:
-          path: _site
-          key: site-${{ runner.os }}-${{ hashFiles('openlayers/**', 'cesium/**', 'index.html', 'static/**') }}
-          restore-keys: |
-            site-${{ runner.os }}-
-
       - name: Build openlayers
         if: steps.filter.outputs.openlayers == 'true'
         run: cd openlayers && npm ci && npm run build
@@ -58,14 +50,12 @@ jobs:
 
       - name: Prepare site
         run: |
+          rm -rf _site
           mkdir -p _site
-          cp index.html -r static _site/
-          if [ "${{ steps.filter.outputs.openlayers }}" = "true" ]; then
-            cp -r openlayers/dist _site/openlayers/
-          fi
-          if [ "${{ steps.filter.outputs.cesium }}" = "true" ]; then
-            cp -r cesium/dist _site/cesium/
-          fi
+          cp index.html static _site/
+          # 始终复制所有存在的 dist 目录
+          [ -d "openlayers/dist" ] && cp -r openlayers/dist _site/openlayers/
+          [ -d "cesium/dist" ] && cp -r cesium/dist _site/cesium/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
