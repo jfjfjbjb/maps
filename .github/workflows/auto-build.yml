@@ -41,12 +41,12 @@ jobs:
               - 'static/**'
 
       - name: Build openlayers
-        if: steps.filter.outputs.openlayers == 'true'
-        run: cd openlayers && npm ci && npm run build
+        run: |
+          cd openlayers && npm ci && npm run build
 
       - name: Build cesium
-        if: steps.filter.outputs.cesium == 'true'
-        run: cd cesium && npm ci && npm run build
+        run: |
+          cd cesium && npm ci && npm run build
 
       - name: Prepare site
         run: |
@@ -54,8 +54,8 @@ jobs:
           mkdir -p _site
           cp index.html _site/
           cp -r static _site/
-          [ -d "openlayers/dist" ] && cp -r openlayers/dist _site/openlayers/
-          [ -d "cesium/dist" ] && cp -r cesium/dist _site/cesium/
+          cp -r openlayers/dist _site/openlayers/
+          cp -r cesium/dist _site/cesium/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
