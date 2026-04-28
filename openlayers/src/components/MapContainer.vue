@@ -322,9 +322,7 @@ onUnmounted(() => {
 }
 
 /* 小屏幕适配：按钮组移到左上角 */
-@media (max-width: 768px) {
-  .toolbar-group {
-    top: 48px !important;
-  }
+.toolbar-group {
+  top: 48px !important;
 }
 </style>
