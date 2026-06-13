@@ -109,6 +109,12 @@ export interface BoundaryLayerResult {
     strokeWidth?: number;
     fillColor?: string;
     fillOpacity?: number;
+    glowEnabled?: boolean;
+    mergedGlowEnabled?: boolean;
+    glowColor?: string;
+    glowWidth?: number;
+    glowIntensity?: number;
+    glowSteps?: number;
   }) => void;
 
   /**
@@ -133,6 +139,13 @@ export function useBoundaryLayer({
     strokeWidth: 1,
     fillColor: "#3388ff",
     fillOpacity: 0.1,
+    // 发光效果配置
+    glowEnabled: false,
+    mergedGlowEnabled: false,
+    glowColor: "#00d4ff",
+    glowWidth: 3,
+    glowIntensity: 0.4,
+    glowSteps: 1,
   };
 
   // 存储所有边界图层
@@ -140,6 +153,8 @@ export function useBoundaryLayer({
 
   // 存储所有边界数据源
   const boundarySources: VectorSource[] = [];
+  // 存储发光图层（每个边界图层对应一组发光图层）
+  const glowLayerGroups: WebGLVectorLayer[][] = [];
 
   // 当前 hover 的 feature
   let hoveredFeature: Feature | null = null;
@@ -153,7 +168,20 @@ export function useBoundaryLayer({
    */
   function createStyle() {
     const style = currentStyle;
-    return [
+    const rules: NonNullable<Parameters<WebGLVectorLayer["setStyle"]>[0]> = [];
+
+    // 合并发光层：在主层 style 中插入一条宽描边，零额外图层
+    if (currentStyle.mergedGlowEnabled) {
+      rules.push({
+        style: {
+          "stroke-color": style.glowColor,
+          "stroke-width": Number(style.glowWidth),
+          "fill-color": "rgba(0,0,0,0)",
+        },
+      });
+    }
+
+    rules.push(
       {
         filter: ["==", ["get", "hovered"], 1],
         style: {
@@ -170,7 +198,43 @@ export function useBoundaryLayer({
           "fill-color": hexToRgba(style.fillColor, style.fillOpacity),
         },
       },
-    ];
+    );
+
+    return rules;
+  }
+
+  /**
+   * 创建发光图层组（多层渐隐描边模拟发光效果）
+   */
+  function createGlowLayers(source: VectorSource, baseZIndex: number): WebGLVectorLayer[] {
+    if (!currentStyle.glowEnabled) return [];
+
+    const color = currentStyle.glowColor;
+    const maxWidth = currentStyle.glowWidth;
+    const intensity = currentStyle.glowIntensity;
+    const steps = currentStyle.glowSteps;
+    const layers: WebGLVectorLayer[] = [];
+
+    for (let i = 0; i < steps; i++) {
+      // 从边界向外渐变：内层窄而浓，外层宽而淡
+      const width = maxWidth * (i + 1) / steps;
+      const opacity = intensity * (1 - i / (steps + 0.5));
+      const strokeColor = hexToRgba(color, Math.min(opacity, 1));
+
+      const glowLayer = new WebGLVectorLayer({
+        source,
+        style: {
+          "stroke-color": strokeColor,
+          "stroke-width": width,
+          "fill-color": "rgba(0,0,0,0)",
+        },
+        zIndex: baseZIndex - 1,
+      });
+      layers.push(glowLayer);
+      map.addLayer(glowLayer);
+    }
+
+    return layers;
   }
 
   /**
@@ -275,15 +339,22 @@ export function useBoundaryLayer({
     });
 
     if (index > -1) {
+      // 移除发光图层
+      const glows = glowLayerGroups[index] || [];
+      glows.forEach((gl) => map.removeLayer(gl));
+      glowLayerGroups.splice(index, 1);
+
+      // 移除主边界图层
       const layer = boundaryLayers[index];
       map.removeLayer(layer);
       boundaryLayers.splice(index, 1);
+
+      // 清理数据源
       const source = boundarySources[index];
       if (source) {
         source.clear();
-        const srcIdx = boundarySources.indexOf(source);
-        if (srcIdx > -1) boundarySources.splice(srcIdx, 1);
       }
+      boundarySources.splice(index, 1);
     }
   }
 
@@ -373,6 +444,10 @@ export function useBoundaryLayer({
     boundaryLayers.push(layer);
     map.addLayer(layer);
 
+    // 创建发光图层组
+    const glows = createGlowLayers(source, 5);
+    glowLayerGroups.push(glows);
+
     // 动画定位到边界区域
     animateToExtent(source);
   }
@@ -402,10 +477,20 @@ export function useBoundaryLayer({
    * 移除所有边界图层
    */
   function removeAllBoundaries(): void {
+    // 移除所有发光图层
+    glowLayerGroups.forEach((glows) => {
+      glows.forEach((gl) => map.removeLayer(gl));
+    });
+    glowLayerGroups.length = 0;
+
+    // 移除所有主边界图层
     boundaryLayers.forEach((layer) => {
       map.removeLayer(layer);
     });
     boundaryLayers.length = 0;
+
+    // 清理数据源
+    boundarySources.forEach((source) => source.clear());
     boundarySources.length = 0;
   }
 
@@ -417,13 +502,41 @@ export function useBoundaryLayer({
     strokeWidth?: number;
     fillColor?: string;
     fillOpacity?: number;
+    glowEnabled?: boolean;
+    mergedGlowEnabled?: boolean;
+    glowColor?: string;
+    glowWidth?: number;
+    glowIntensity?: number;
+    glowSteps?: number;
   }): void {
+    // 确保数值字段为 number 类型（防止 HTML input 传入字符串导致 rgba 拼接错误）
+    if (style.fillOpacity !== undefined) style.fillOpacity = Number(style.fillOpacity);
+    if (style.strokeWidth !== undefined) style.strokeWidth = Number(style.strokeWidth);
+    if (style.glowWidth !== undefined) style.glowWidth = Number(style.glowWidth);
+    if (style.glowIntensity !== undefined) style.glowIntensity = Number(style.glowIntensity);
+    if (style.glowSteps !== undefined) style.glowSteps = Number(style.glowSteps);
     currentStyle = { ...currentStyle, ...style };
 
-    // 更新所有图层的样式
+    // 更新主边界图层的样式
     boundaryLayers.forEach((layer) => {
       layer.setStyle(createStyle());
     });
+
+    // 重新构建发光图层
+    glowLayerGroups.forEach((glows) => {
+      glows.forEach((gl) => map.removeLayer(gl));
+    });
+    glowLayerGroups.length = 0;
+
+    if (currentStyle.glowEnabled) {
+      boundarySources.forEach((source) => {
+        const glows = createGlowLayers(source, 5);
+        glowLayerGroups.push(glows);
+      });
+    } else {
+      // 保持 glowLayerGroups 与 boundarySources 的并行关系
+      boundarySources.forEach(() => glowLayerGroups.push([]));
+    }
   }
 
   /**
@@ -431,6 +544,7 @@ export function useBoundaryLayer({
    */
   function dispose(): void {
     removeAllBoundaries();
+    removeHoverEvents();
     boundaryCache.clear();
   }
 

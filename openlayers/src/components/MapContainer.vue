@@ -2,33 +2,24 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import Map from "ol/Map";
 import View from "ol/View";
-import TileLayer from "ol/layer/Tile";
 import { fromLonLat } from "ol/proj";
-import { XYZ } from "ol/source";
 import { defaults as defaultControls } from "ol/control/defaults";
 import "ol/ol.css";
 import { useControls } from "../composables/useControls";
 import { useRouteSimulation } from "../composables/useRouteSimulation";
+import { useBaseMap } from "../composables/useBaseMap";
+import { useTest } from "../composables/useTest";
+import type { BaseMapItem } from "../composables/useBaseMap";
 import BoundaryControl from "../components/BoundaryControl.vue";
 import DrawToolbar from "../components/DrawToolbar.vue";
 // import { useSchoolAnnotation } from "../composables/useSchoolAnnotation";
 // import { useMapSchoolQuery } from "../composables/useMapSchoolQuery";
 
-// 天地图Token
-// const TIANDITU_TOKEN = "93bcff03e8b49fe2da953aac3305cac3";
-
 // 中国区域中心点 - 重庆
 const center = fromLonLat([106.551294, 29.533155]);
 
-// 天地图矢量底图
-const tiandituBaseLayer = new TileLayer({
-  source: new XYZ({
-    // url: `http://t0.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=${TIANDITU_TOKEN}`,
-    url: `https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}`,
-    tilePixelRatio: 2,
-  }),
-});
-
+// 天地图Token
+// const TIANDITU_TOKEN = "93bcff03e8b49fe2da953aac3305cac3";
 // 天地图标注图层
 // const tiandituLabelLayer = new TileLayer({
 //   source: new XYZ({
@@ -41,23 +32,49 @@ const tiandituBaseLayer = new TileLayer({
 let map: Map | null = null;
 let controlsDispose: (() => void) | null = null;
 let routeDispose: (() => void) | null = null;
+let testDispose: (() => void) | null = null;
 let drawRouteFn: ((from: "flowerGarden" | "grandTheater") => void) | null = null;
 let clearRouteFn: (() => void) | null = null;
 // let schoolDispose: (() => void) | null = null;
 // let schoolQueryDispose: (() => void) | null = null;
+
+// 统一面板状态管理（扩展只需加新 panel 名）
+type ActivePanel = "basemap" | "boundary" | null;
+const activePanel = ref<ActivePanel>(null);
+
+let baseMapDispose: (() => void) | null = null;
+const baseMaps = ref<BaseMapItem[]>([]);
+let toggleBaseMap: (id: string) => void = () => {};
 
 // 图层信息加载状态，请求完成后置为 false
 const loading = ref(true);
 // 瓦片加载完毕后是否已初始化（防止重复初始化）
 let hasLoaded = false;
 
-// 边界图层控制按钮状态
-const showBoundaryControl = ref(false);
 // 路径模拟状态
 const routeVisible = ref(false);
 
-function toggleBoundaryControl() {
-  showBoundaryControl.value = !showBoundaryControl.value;
+/** 打开/切换面板（互斥） */
+function togglePanel(panel: ActivePanel) {
+  activePanel.value = activePanel.value === panel ? null : panel;
+}
+
+/** 关闭所有面板 */
+function closeAllPanels() {
+  activePanel.value = null;
+}
+
+/** 拖动检测 */
+let pointerStart = { x: 0, y: 0 };
+
+function onMapPointerDown(e: PointerEvent) {
+  pointerStart = { x: e.clientX, y: e.clientY };
+}
+
+function onMapClick(e: MouseEvent) {
+  const dist = Math.hypot(e.clientX - pointerStart.x, e.clientY - pointerStart.y);
+  if (dist > 5) return; // 拖动不关闭
+  closeAllPanels();
 }
 
 function handleRouteToggle() {
@@ -75,7 +92,7 @@ onMounted(() => {
     target: "map-container",
     controls: defaultControls({ zoom: false, rotate: false }),
     // layers: [tiandituBaseLayer, tiandituLabelLayer],
-    layers: [tiandituBaseLayer],
+    layers: [],
     view: new View({
       center: center,
       zoom: 10,
@@ -101,6 +118,23 @@ onMounted(() => {
     drawRouteFn = drawRoute;
     clearRouteFn = clearRoute;
 
+    // 初始化底图切换
+    const baseMapApi = useBaseMap({ map: map as Map });
+    baseMapDispose = baseMapApi.dispose;
+    baseMaps.value = baseMapApi.baseMaps.value;
+    toggleBaseMap = (id: string) => {
+      baseMapApi.toggle(id);
+      // 触发响应式更新
+      baseMaps.value = [...baseMapApi.baseMaps.value];
+    };
+
+    // dev 模式：测试文字标注
+    if (import.meta.env.DEV) {
+      const { addTestLayer, dispose: testFn } = useTest({ map: map as Map });
+      addTestLayer()
+      testDispose = testFn;
+    }
+
     // 初始化学校标注
     // const { addSchool, clearAll, dispose } = useSchoolAnnotation({ map: map });
     // schoolDispose = dispose;
@@ -122,6 +156,8 @@ onMounted(() => {
 onUnmounted(() => {
   // schoolQueryDispose?.();
   // schoolDispose?.();
+  baseMapDispose?.();
+  testDispose?.();
   routeDispose?.();
   controlsDispose?.();
   if (map) {
@@ -133,7 +169,7 @@ onUnmounted(() => {
 
 <template>
   <div class="map-wrapper">
-    <div id="map-container" class="map-container"></div>
+    <div id="map-container" class="map-container" @pointerdown="onMapPointerDown" @click="onMapClick"></div>
     <!-- 加载遮罩，图层信息请求完成前显示 -->
     <div v-if="loading" class="map-loading">
       <div class="map-loading-spinner"></div>
@@ -143,16 +179,36 @@ onUnmounted(() => {
     <DrawToolbar v-if="map && !loading" :map="map" />
     <!-- 工具按钮组 -->
     <template v-if="!loading">
-      <div class="toolbar-group">
-        <div class="toolbar-btn" @click="toggleBoundaryControl">
-          <span>{{ showBoundaryControl ? "关闭" : "边界图层" }}</span>
+      <div class="toolbar-group" @click.stop>
+        <div class="toolbar-btn" :class="{ active: activePanel === 'basemap' }" @click="togglePanel('basemap')">
+          <span>底图切换</span>
+        </div>
+        <div class="toolbar-btn" :class="{ active: activePanel === 'boundary' }" @click="togglePanel('boundary')">
+          <span>{{ activePanel === 'boundary' ? "关闭" : "边界图层" }}</span>
         </div>
         <div class="toolbar-btn" @click="handleRouteToggle">
           <span>{{ routeVisible ? "清除路径" : "模拟路径" }}</span>
         </div>
       </div>
-      <div v-show="showBoundaryControl" class="boundary-panel">
+      <div v-show="activePanel === 'boundary'" class="boundary-panel" @click.stop>
         <BoundaryControl :map="map" v-if="map" />
+      </div>
+      <!-- 底图切换面板 -->
+      <div v-show="activePanel === 'basemap'" class="basemap-panel" @click.stop>
+        <div class="basemap-panel-title">底图切换</div>
+        <div
+          v-for="item in baseMaps"
+          :key="item.id"
+          class="basemap-item"
+          :class="{ active: item.visible }"
+          @click="toggleBaseMap(item.id)"
+        >
+          <span
+            class="basemap-indicator checkbox"
+            :class="{ checked: item.visible }"
+          ></span>
+          <span>{{ item.name }}</span>
+        </div>
       </div>
     </template>
   </div>
@@ -241,12 +297,99 @@ onUnmounted(() => {
 
 .boundary-panel {
   position: fixed;
-  top: 68px;
-  right: 20px;
-  z-index: 1000;
+  top: 60px;
+  right: 120px;
+  z-index: 1001;
 }
 
-/* 小屏幕适配：按钮组移到左上角 */
+/* 底图切换面板 */
+.basemap-panel {
+  position: fixed;
+  top: 20px;
+  right: 120px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  min-width: 140px;
+  z-index: 1001;
+}
+
+.basemap-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+  padding: 0 14px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.basemap-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #555;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.basemap-item:hover {
+  background: #f5f7fa;
+  color: #333;
+}
+
+.basemap-item.active {
+  color: #4a90e2;
+  font-weight: 500;
+}
+
+.basemap-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.basemap-indicator.checkbox {
+  border-radius: 3px;
+  border: 2px solid #ccc;
+  transition: all 0.15s ease;
+}
+
+.basemap-indicator.checkbox.checked {
+  border-color: #4a90e2;
+  background: #4a90e2;
+}
+
+.basemap-indicator.checkbox.checked::after {
+  content: "✓";
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.basemap-tag {
+  font-size: 10px;
+  background: #e8f0fe;
+  color: #4a90e2;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+.toolbar-btn.active {
+  background: #e8f0fe;
+  color: #4a90e2;
+  border-color: #4a90e2;
+}
+
+/* 小屏幕适配：按钮组移动到左上角 */
 @media (max-width: 768px) {
   .toolbar-group {
     top: 48px;
@@ -257,12 +400,20 @@ onUnmounted(() => {
     font-size: 12px;
   }
 
+  .basemap-panel {
+    top: 50px;
+    right: 100px
+  }
+
   .boundary-panel {
-    top: 86px;
+    top: 90px;
+    right: 100px;
+    width: 250px;
   }
 
   .boundary-control {
     max-height: 500px;
+    width: 250px;
   }
 
   /* 绘图工具栏在小屏幕上往上一点 */

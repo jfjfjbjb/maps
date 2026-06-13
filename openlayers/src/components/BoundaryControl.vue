@@ -115,12 +115,16 @@ function clearAll() {
 const strokeColor = ref("#3388ff");
 const strokeWidth = ref(1);
 const fillOpacity = ref(0.1);
+const glowEnabled = ref(false);
+const mergedGlowEnabled = ref(false);
 
 function applyStyle() {
   setBoundaryStyle({
     strokeColor: strokeColor.value,
-    strokeWidth: strokeWidth.value,
-    fillOpacity: fillOpacity.value,
+    strokeWidth: Number(strokeWidth.value),
+    fillOpacity: Number(fillOpacity.value),
+    glowEnabled: glowEnabled.value,
+    mergedGlowEnabled: mergedGlowEnabled.value,
   });
 }
 
@@ -224,6 +228,22 @@ defineExpose({
           @change="onStyleChange"
         />
         <span class="value">{{ Math.round(fillOpacity * 100) }}%</span>
+      </div>
+      <div class="style-row">
+        <label>边界发光</label>
+        <label class="switch">
+          <input type="checkbox" v-model="mergedGlowEnabled" @change="onStyleChange" />
+          <span class="switch-slider"></span>
+        </label>
+        <span class="value">{{ mergedGlowEnabled ? '开' : '关' }}</span>
+      </div>
+      <div class="style-row">
+        <label>单独发光层</label>
+        <label class="switch">
+          <input type="checkbox" v-model="glowEnabled" @change="onStyleChange" />
+          <span class="switch-slider"></span>
+        </label>
+        <span class="value">{{ glowEnabled ? '开' : '关' }}</span>
       </div>
     </div>
   </div>
@@ -358,6 +378,7 @@ defineExpose({
 
 .style-row input[type="range"] {
   flex: 1;
+  min-width: 0;
 }
 
 .style-row .value {
@@ -365,5 +386,51 @@ defineExpose({
   color: #999;
   min-width: 35px;
   text-align: right;
+}
+
+/* Switch 开关样式 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: auto !important;
+  font-size: inherit !important;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  inset: 0;
+  background: #ccc;
+  border-radius: 22px;
+  transition: background 0.2s;
+}
+
+.switch-slider::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 2px;
+  bottom: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.switch input:checked + .switch-slider {
+  background: #3388ff;
+}
+
+.switch input:checked + .switch-slider::before {
+  transform: translateX(18px);
 }
 </style>
