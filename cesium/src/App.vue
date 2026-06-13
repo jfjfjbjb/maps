@@ -1,10 +1,10 @@
 <script setup>
 import { onMounted, ref, reactive } from "vue";
 import * as Cesium from "cesium";
-// import VConsole from "vconsole";
+import VConsole from "vconsole";
 import useEntity from "./composables/useEntity";
 
-// const vConsole = new VConsole();
+const vConsole = new VConsole();
 
 Cesium.Ion.defaultAccessToken =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzMTY0M2ZkNC03M2UwLTRhMjAtYmYxZS00N2EwYzc4M2EyODAiLCJpZCI6NDQ0MDE3LCJzdWIiOiJqZmpmamJqYiIsImlzcyI6Imh0dHBzOi8vYXBpLmNlc2l1bS5jb20iLCJhdWQiOiJnaXRodWIiLCJpYXQiOjE3ODEzNTk4MTh9.rDoIXDPEuB14RoxL4GADRGfda8TwnxfwFCuXlV_9x8k";
